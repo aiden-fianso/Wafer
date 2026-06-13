@@ -36,7 +36,7 @@ contract **directly** via a wallet — no backend, no HCS.
   operator ──finance/settle──▶  WaferVault.sol (Hedera EVM)  ◀──deposit/redeem── investor
                                 via @hiero-ledger/hiero-contracts:
    front (Next.js + viem) ────▶  creates/holds HTS pool-share + reward-claim NFTs,
-   reads contract views          mock-USDC settlement, NAV, deposit/redeem/settle
+   reads contract views          real USDC settlement, NAV, deposit/redeem/settle
    + Mirror Node                        │                    │
                               ┌─────────▼──────┐    ┌─────────▼──────┐
                               │  Hedera HTS    │    │  SaucerSwap V1 │  share/USDC pool
@@ -53,7 +53,7 @@ contract **directly** via a wallet — no backend, no HCS.
 contracts/WaferVault.sol   the vault — HTS tokens via @hiero-ledger/hiero-contracts
 hardhat.config.ts          Solidity 0.8.24, network testnet (chain 296, Hashio)
 scripts/
-  deploy.ts                deploy vault, create mock-USDC + GPU-A pool, persist addresses
+  deploy.ts                deploy vault, wire real USDC, create GPU-A pool, persist addresses
   saucerswap.ts            create share/USDC pool + add liquidity + sample swap (viem)
   demo.ts                  full lifecycle live: finance → deposit → settle (NAV↑) → redeem
   resolve-operator.ts      derive OPERATOR_ID from the key (Mirror Node)
@@ -72,7 +72,7 @@ pnpm install
 cp .env.example .env          # OPERATOR_ID/KEY already set — TOP UP HBAR first (see below)
 
 pnpm hardhat compile
-pnpm deploy                   # deploy vault + mock-USDC + GPU-A pool → deployments/testnet.json
+pnpm deploy                   # deploy vault + GPU-A pool (real USDC 0.0.429274) → deployments/testnet.json
 pnpm hardhat verify --network testnet <VAULT_ADDR>   # Sourcify / HashScan
 
 pnpm demo                     # full lifecycle on testnet — watch NAV per share rise, then redeem
@@ -88,7 +88,7 @@ refunded) and the SaucerSwap pool ~$50 in testnet HBAR. The operator `0.0.918596
 ## Test the flow
 
 After `pnpm deploy` + `pnpm demo`, open the app (`cd web && pnpm dev`): connect the dev wallet,
-deposit mock-USDC, watch your share balance + the live NAV, then redeem at NAV. The activity feed
+deposit USDC, watch your share balance + the live NAV, then redeem at NAV. The activity feed
 reads the contract's events from the Mirror Node. SaucerSwap swap is available once `pnpm
 saucerswap` has seeded the pool.
 
