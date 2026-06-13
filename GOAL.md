@@ -25,15 +25,14 @@ and demonstrated **live on Hedera Testnet**. First **clean** the discarded no-So
 - [ ] Frontend builds + runs (`cd web && pnpm dev`): Pools+NAV, Deposit, Redeem, Activity screens **wired to the contract (viem) + Mirror Node**, neutral theme, dev wallet. Deposit/redeem work end-to-end against the live vault (incl. associate + approve flow).
 - [ ] `main` green and runnable from a clean clone + `.env` (+ funded operator); `demo-r1` tag; `RUN-REPORT.md` with addresses, HashScan links, what passed, blockers.
 
-## 2. Prerequisite the human must do BEFORE launching (and you must check)
+## 2. Operator funding (done) — keep spend lean
 
-The operator `0.0.9221779` (EVM `0xdae8992a9b5fe850be63781d1c2e65a3e496f728`, ECDSA key in
-`.env`) needs **lots of testnet HBAR**: ~60 HBAR per HTS create + ~$50-in-HBAR for the SaucerSwap
-pool. It currently has ~10 HBAR. **Top up at <https://portal.hedera.com/>.** At run start, check
-the balance via Mirror Node; if it can't cover token creates, **stop and record it** — build +
-compile + unit-test everything, deploy what HBAR allows, and clearly flag the funding blocker.
-Never fake transactions or HashScan links. The SaucerSwap pool is the most likely HBAR casualty;
-**redeem-at-NAV is the guaranteed exit and must work live** even if SaucerSwap can't be funded.
+The operator `0.0.9185964` (EVM `0xf6fac89c3a2baa468c78d3a638ca2f44f5fdbdbf`, ECDSA key in
+`.env`) holds **~1000 testnet HBAR** — sufficient for the HTS creates (~50–60 HBAR each, mostly
+refunded) and the ~$50-in-HBAR SaucerSwap pool. Still check the balance via Mirror Node at run
+start and keep spend lean; if any step hits `INSUFFICIENT_PAYER_BALANCE`, record it — never fake
+transactions or HashScan links. **Redeem-at-NAV is the guaranteed exit and must work live**;
+SaucerSwap is the bonus.
 
 ## 3. CLEAN first (the previous no-Solidity run built dead code)
 

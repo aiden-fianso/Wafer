@@ -81,10 +81,9 @@ pnpm saucerswap               # create the share/USDC pool + a sample swap (HBAR
 cd web && pnpm install && pnpm dev    # frontend → contract (deposit / redeem / NAV / activity)
 ```
 
-⚠️ **HBAR prerequisite.** Creating HTS tokens from the contract costs ~50–60 HBAR each
-(`msg.value`, excess refunded) and the SaucerSwap pool costs ~$50 in testnet HBAR. The operator
-`0.0.9221779` has ~10 HBAR — **top up at <https://portal.hedera.com/> before deploying**, or the
-on-chain steps will fail with `INSUFFICIENT_PAYER_BALANCE`.
+**HBAR.** Creating HTS tokens from the contract costs ~50–60 HBAR each (`msg.value`, excess
+refunded) and the SaucerSwap pool ~$50 in testnet HBAR. The operator `0.0.9185964` holds
+**~1000 testnet HBAR — sufficient** for the MVP.
 
 ## Test the flow
 
