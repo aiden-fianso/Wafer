@@ -149,7 +149,7 @@ Use **V1 (Uniswap-v2 style)** — one call creates the pool + seeds liquidity. L
 
 ## 7. Settlement asset
 
-The operator (`0.0.9221779`) holds no USDC, so the vault **creates a mock-USDC HTS token (6 dp)**
+The operator (`0.0.9185964`) holds no USDC, so the vault **creates a mock-USDC HTS token (6 dp)**
 and uses it as the settlement asset for the demo. Real Circle USDC testnet is `0.0.429274` — a
 one-line config swap once the account is funded with real USDC.
 
@@ -179,10 +179,9 @@ SaucerSwap + demo scripts and the front.
 
 ## 11. Known blockers & footguns (read before the build)
 
-- **HBAR funding (hard prerequisite).** Token create = 50–60 HBAR `msg.value` each (refunded
-  excess, but needed up front); SaucerSwap pool = ~$50 in testnet HBAR (can be hundreds). The
-  operator's ~10 HBAR is **not enough** → top up at the portal faucet to the max. If unfunded,
-  the live deploy can't complete.
+- **HBAR funding.** Token create = 50–60 HBAR `msg.value` each (excess refunded); SaucerSwap pool
+  = ~$50 in testnet HBAR. The operator (`0.0.9185964`) holds **~1000 testnet HBAR — sufficient**;
+  keep spend lean and watch for `INSUFFICIENT_PAYER_BALANCE` only under heavy retries.
 - **Association + KYC ordering** is the #1 demo footgun: associate → grantKyc → transfer.
 - **Allowance before deposit**: investor must `approve` USDC to the vault first.
 - **Pin gas** on HTS-touching calls (Hashio mis-estimates) and check `SUCCESS (22)`.
