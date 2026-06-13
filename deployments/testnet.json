@@ -1,0 +1,27 @@
+{
+  "network": "testnet",
+  "chainId": 296,
+  "createdAt": "2026-06-13T19:13:18.770Z",
+  "updatedAt": "2026-06-13T19:27:37.222Z",
+  "settlementAsset": "HBAR",
+  "operator": "0xf6fAc89C3a2bAA468c78d3A638cA2F44F5fdBDbF",
+  "vaultAddress": "0xc452D23791F9fC0c43B82E298b337B0A3525cd0A",
+  "vaultId": "0.0.9225583",
+  "pool": {
+    "id": 0,
+    "name": "Wafer GPU-A",
+    "symbol": "wGPUA",
+    "shareTokenEvm": "0x00000000000000000000000000000000008CC571",
+    "shareTokenId": "0.0.9225585",
+    "claimNftEvm": "0x00000000000000000000000000000000008cc572",
+    "claimNftId": "0.0.9225586"
+  },
+  "hashscan": {
+    "vault": "https://hashscan.io/testnet/contract/0xc452D23791F9fC0c43B82E298b337B0A3525cd0A",
+    "shareToken": "https://hashscan.io/testnet/token/0.0.9225585",
+    "claimNft": "https://hashscan.io/testnet/token/0.0.9225586",
+    "deployTx": "https://hashscan.io/testnet/transaction/0xfc5615a6fa563cc8abfe3f25b3df4d76bc5c020969b4d79557ea0afe1c049d33",
+    "createPoolTx": "https://hashscan.io/testnet/transaction/0x14c2597cf0e25fb67026668fa5fec8e473168d7663055543499574d325c7b4d6"
+  },
+  "sourcify": "https://repo.sourcify.dev/contracts/full_match/296/0xc452D23791F9fC0c43B82E298b337B0A3525cd0A/"
+}
