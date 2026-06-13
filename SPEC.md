@@ -34,7 +34,7 @@ tradable/redeemable any time.
                               │  via @hiero-ledger/hiero-contracts:   │
    front (Next.js, viem) ────▶│   • creates/holds HTS pool-share      │
    reads views + Mirror Node  │   • creates/holds reward-claim NFTs   │
-                              │   • mock-USDC (HTS) as settlement      │
+                              │   • real USDC (Circle) settlement      │
                               │   • NAV, deposit, redeem, settle       │
                               └───────┬───────────────────┬───────────┘
                                       │ HTS @ 0x167        │ shares/USDC
@@ -73,7 +73,7 @@ Storage:
 enum ClaimStatus { Active, Repaid, Defaulted }
 struct Pool  { address shareToken; address claimNft; uint64 totalAssets; uint64 totalShares; uint8 status; }
 struct Claim { address operator; uint64 principalUsdc; uint64 repaidUsdc; int64 nftSerial; uint32 poolId; ClaimStatus status; }
-address public usdc;                       // mock-USDC HTS token (6 dp)
+address public usdc;                       // real Circle USDC 0.0.429274 (6 dp)
 mapping(uint32 => Pool)  public pools;     uint32 public poolCount;
 mapping(uint256 => Claim) public claims;   uint256 public claimCount;
 ```
@@ -149,11 +149,12 @@ Use **V1 (Uniswap-v2 style)** — one call creates the pool + seeds liquidity. L
 
 ## 7. Settlement asset
 
-At deploy, the settlement asset is **auto-detected**: if the operator (`0.0.9185964`) holds real
-Circle USDC (testnet `0.0.429274`, 6 dp) with a positive balance, the vault uses it
-(`setUsdc(0.0.429274)`); otherwise it **creates a mock-USDC HTS token (6 dp)**. The operator has
-unlimited auto-association (`maxAutomaticTokenAssociations = -1`), so funding it with testnet USDC
-(Circle faucet) is enough — no manual association — and the demo runs on real USDC.
+The settlement asset is **real Circle USDC on Hedera testnet (`0.0.429274`, 6 dp) — only, never a
+mock**. The operator (`0.0.9185964`) has unlimited auto-association (`maxAutomaticTokenAssociations
+= -1`) and is funded with USDC (Circle faucet) — no manual association. At deploy, verify the
+operator holds USDC (balance > 0) and wire the vault to it (`setUsdc(0.0.429274)` + associate the
+contract). **If USDC is absent or insufficient, STOP, flag it, and ask the human — never create or
+use any mock token.**
 
 ## 8. Trust model
 
@@ -166,7 +167,7 @@ oracle. All-USDC on-chain settlement removes any fiat-bridge trust.
 
 ## 9. Scope
 
-IN (MVP): the `WaferVault` contract, mock-USDC, **1 pool (GPU-A)** end-to-end (finance → deposit
+IN (MVP): the `WaferVault` contract, real-USDC settlement, **1 pool (GPU-A)** end-to-end (finance → deposit
 → settle/NAV-rise → redeem), one **SaucerSwap pool + swap** (best-effort, HBAR-permitting), the
 wired frontend skeleton. OUT: HCS topic, backend API, Privy/Arc/ENS, AI agent, real DePIN
 network integration, senior/junior tranches, internal lending (all V2).
