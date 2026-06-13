@@ -19,26 +19,36 @@ export const NATIVE_CURRENCY = { name: "HBAR", symbol: "HBAR", decimals: 18 };
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export const ADDRESSES = {
-  // TODO(deploy): set VITE_VAULT_ADDRESS once WaferVault.sol is deployed +
-  // verified on HashScan. Until then this stays the zero address and the app
-  // runs in MOCK_MODE (see below) with placeholder pool/activity data.
-  vault: (import.meta.env.VITE_VAULT_ADDRESS || ZERO_ADDRESS).toLowerCase(),
+// Live deployment — Hedera testnet (deployments/testnet.json). The vault is
+// deployed + verified on HashScan, so these are the defaults; MOCK_MODE flips
+// OFF automatically. A `.env` (VITE_VAULT_ADDRESS / VITE_SHARE_TOKEN) override
+// wins for pointing the app at a different deploy.
+const DEFAULT_VAULT_ADDRESS = "0xc452D23791F9fC0c43B82E298b337B0A3525cd0A";
+// Pool 0 (GPU-A) share token EVM address (Hedera 0.0.9225585, 8 dp).
+const DEFAULT_SHARE_TOKEN = "0x00000000000000000000000000000000008CC571";
 
-  // TODO(deploy): the per-pool share token is normally read from the contract's
-  // pools(poolId).shareToken view. This optional override is only used by the
-  // association step before the contract exposes the real address.
-  shareToken: (import.meta.env.VITE_SHARE_TOKEN || ZERO_ADDRESS).toLowerCase(),
+export const ADDRESSES = {
+  // WaferVault EVM address. Defaults to the live testnet deploy; override with
+  // VITE_VAULT_ADDRESS, or set the zero address to force MOCK_MODE.
+  vault: (import.meta.env.VITE_VAULT_ADDRESS || DEFAULT_VAULT_ADDRESS).toLowerCase(),
+
+  // Per-pool share token is normally read from the contract's
+  // pools(poolId).shareToken view; this default is pool 0's share token, used by
+  // the association step / Mirror reads when a pool's address isn't loaded yet.
+  shareToken: (import.meta.env.VITE_SHARE_TOKEN || DEFAULT_SHARE_TOKEN).toLowerCase(),
 };
 
-// Mock mode: when the vault address is unset (zero), the contract isn't
-// deployed yet — the UI renders from placeholder data so a designer can work on
-// the shell. Flip automatically once VITE_VAULT_ADDRESS points at a real vault.
+// Mock mode: when the vault address is the zero address the contract isn't
+// wired — the UI renders from placeholder data so a designer can work on the
+// shell. With the live default above it is OFF; set VITE_VAULT_ADDRESS=0x0…0 to
+// force it back on.
 export const MOCK_MODE = ADDRESSES.vault === ZERO_ADDRESS;
 
-// Placeholder pools shown in mock mode (and used as display metadata even once
-// live — network/risk labels aren't on-chain). poolId matches the contract's
-// pools(uint32) index. navPerShare / totalAssets / totalShares are 8-dp units
+// Display metadata per pool (and full placeholder rows for mock mode). Live, the
+// numeric fields (navPerShare / totalAssets / totalShares) are read from the
+// contract and ONLY the name / network / risk / logo labels are reused (those
+// aren't on-chain). poolId matches the contract's pools(uint32) index — pool 0
+// is the live GPU-A pool (deployments/testnet.json). All amounts are 8-dp units
 // (tinybar); mock values give a realistic NAV > 1.00.
 export const MOCK_POOLS = [
   {

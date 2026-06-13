@@ -73,6 +73,19 @@ export const VAULT_ABI = [
   ] },
 ];
 
+// HTS ERC-20 facade — every HTS fungible token EVM address answers the standard
+// ERC-20 read/write selectors. The vault's redeem() pulls shares from the
+// investor (transferToken investor → vault), which needs an HTS allowance, so
+// the front calls approve(vault, shares) on the SHARE TOKEN'S OWN EVM address
+// before redeeming. balanceOf/allowance are used for reads. (8-dp shares.)
+export const HTS_ERC20_ABI = [
+  { name: "balanceOf", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  { name: "allowance", type: "function", stateMutability: "view", inputs: [{ name: "owner", type: "address" }, { name: "spender", type: "address" }], outputs: [{ name: "", type: "uint256" }] },
+  { name: "approve", type: "function", stateMutability: "nonpayable", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ name: "", type: "bool" }] },
+  { name: "decimals", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint8" }] },
+  { name: "totalSupply", type: "function", stateMutability: "view", inputs: [], outputs: [{ name: "", type: "uint256" }] },
+];
+
 // IHRC719 association facade — every HTS token EVM address exposes these. An
 // account must associate a token before it can hold it. Investors associate the
 // share token themselves from their wallet via associate().
