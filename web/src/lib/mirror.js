@@ -9,11 +9,22 @@
 // Until the contract is deployed (MOCK_MODE), these helpers return placeholder
 // data so the UI renders. Nothing here throws — read failures degrade to mocks.
 
-import { decodeEventLog, getAddress } from "viem";
-import { ADDRESSES, MIRROR_NODE_URL, MOCK_ACTIVITY, MOCK_POOLS, MOCK_MODE } from "./config.js";
+import { decodeEventLog, getAddress, createPublicClient, http } from "viem";
+import { ADDRESSES, MIRROR_NODE_URL, RPC_URL, MOCK_ACTIVITY, MOCK_POOLS, MOCK_MODE } from "./config.js";
 import { VAULT_ABI } from "./abi.js";
 
 const LOGS_LIMIT = 25;
+
+// Wallet-free read-only client over the Hedera EVM relay, so mirror helpers can
+// read the contract before the user connects a wallet (landing page hero).
+let _readClient = null;
+function readClient() {
+  if (MOCK_MODE) return null;
+  if (!_readClient) {
+    _readClient = createPublicClient({ transport: http(RPC_URL, { retryCount: 2 }) });
+  }
+  return _readClient;
+}
 
 // Map a decoded event to the normalized shape the Activity screen renders.
 function normalizeEvent(decoded, log) {
@@ -66,10 +77,76 @@ export async function readActivity() {
   }
 }
 
+// Read an HTS token's metadata (supply, decimals, name) from the Mirror Node.
+// Used to show a pool share-token's circulating supply alongside the contract's
+// totalShares cache. Returns null on any failure (never throws). `total_supply`
+// is the raw 8-dp integer string; we return it as a bigint.
+export async function readTokenSupply(tokenIdOrAddr) {
+  if (MOCK_MODE || !tokenIdOrAddr) return null;
+  try {
+    const url = `${MIRROR_NODE_URL}/api/v1/tokens/${tokenIdOrAddr}`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const data = await r.json();
+    return {
+      tokenId: data?.token_id ?? null,
+      name: data?.name ?? null,
+      symbol: data?.symbol ?? null,
+      decimals: data?.decimals != null ? Number(data.decimals) : null,
+      totalSupply: data?.total_supply != null ? BigInt(data.total_supply) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Count the holders of an HTS token via the Mirror Node balances endpoint
+// (accounts with balance > 0). Best-effort, single page; returns null on
+// failure. Useful as a "N investors" stat on the pool / dashboard screens.
+export async function readTokenHolders(tokenIdOrAddr) {
+  if (MOCK_MODE || !tokenIdOrAddr) return null;
+  try {
+    const url = `${MIRROR_NODE_URL}/api/v1/tokens/${tokenIdOrAddr}/balances?order=desc&limit=100`;
+    const r = await fetch(url);
+    if (!r.ok) return null;
+    const data = await r.json();
+    const balances = Array.isArray(data?.balances) ? data.balances : [];
+    return balances.filter((b) => BigInt(b?.balance ?? 0) > 0n).length;
+  } catch {
+    return null;
+  }
+}
+
 // Aggregate TVL across pools for the landing page hero. In mock mode this sums
-// MOCK_POOLS.totalAssets; once live, it can be swapped to read pools() via the
-// public client. Returns a Number of whole HBAR. Never throws.
+// MOCK_POOLS.totalAssets; once live, it sums pools(i).totalAssets read from the
+// contract through a wallet-free read client (works before the user connects).
+// Returns a Number of whole HBAR. Never throws.
 export async function readAggregateStats() {
+  const client = readClient();
+  if (client) {
+    try {
+      const count = Number(await client.readContract({
+        address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "poolCount",
+      }));
+      let totalAssets = 0n;
+      let totalShares = 0n;
+      for (let i = 0; i < count; i++) {
+        const pool = await client.readContract({
+          address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "pools", args: [i],
+        });
+        // pools() → (shareToken, claimNft, totalAssets, totalShares, status)
+        totalAssets += BigInt(pool[2]);
+        totalShares += BigInt(pool[3]);
+      }
+      return {
+        tvl: Number(totalAssets / 100_000_000n),
+        shares: Number(totalShares / 100_000_000n),
+        ok: true,
+      };
+    } catch {
+      // fall through to mock aggregate below
+    }
+  }
   try {
     const totalAssets = MOCK_POOLS.reduce((acc, p) => acc + p.totalAssets, 0n);
     const totalShares = MOCK_POOLS.reduce((acc, p) => acc + p.totalShares, 0n);
