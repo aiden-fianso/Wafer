@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { readActivity } from "../lib/mirror.js";
 import { MOCK_MODE, EXPLORER_URL } from "../lib/config.js";
-import { formatUsdc, shortAddr, timeAgo } from "../lib/format.js";
+import { formatHbar, shortAddr, timeAgo } from "../lib/format.js";
 
 // Activity feed: Deposit / Redeem / ClaimFinanced / RewardRouted / Default
 // events for the vault, read from the Hedera Mirror Node
@@ -85,7 +85,7 @@ export default function Activity({ refreshKey }) {
                     </td>
                     <td>
                       <div className="mt-cell">
-                        <span className="mt-amount">{ev.assets != null ? `${formatUsdc(ev.assets)} USDC` : "—"}</span>
+                        <span className="mt-amount">{ev.assets != null ? `${formatHbar(ev.assets)} HBAR` : "—"}</span>
                       </div>
                     </td>
                     <td>

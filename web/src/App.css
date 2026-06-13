@@ -699,7 +699,6 @@ input::placeholder { color: var(--text-muted); }
   overflow: hidden;
 }
 .vw-token-icon img { width: 100%; height: 100%; object-fit: contain; }
-.vw-icon-usdc { background: linear-gradient(135deg, #2775ca, #1a56db); }
 .vw-icon-shares { background: linear-gradient(135deg, var(--accent), #a78bfa); }
 .vw-icon-lend { background: linear-gradient(135deg, #22c55e, #16a34a); }
 .vw-icon-coll { background: linear-gradient(135deg, #f59e0b, #d97706); }

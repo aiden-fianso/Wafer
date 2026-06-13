@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DepositWidget from "./DepositWidget.jsx";
 import { MOCK_MODE } from "../lib/config.js";
-import { formatUsdc, formatNav } from "../lib/format.js";
+import { formatHbar, formatNav } from "../lib/format.js";
 
 // Pools screen. Lists Wafer pools (GPU-A, WIFI-B, …)
 // with NAV/share, TVL, network + risk. Clicking a pool opens its Deposit/Redeem
@@ -124,14 +124,13 @@ export default function Pools({ contracts, onStatus, refreshKey }) {
                   <td>
                     <div className="mt-cell">
                       <div className="mt-amount-col">
-                        <span className="mt-amount">{formatUsdc(p.totalAssets)} USDC</span>
-                        <span className="mt-usd-pill">${formatUsdc(p.totalAssets)}</span>
+                        <span className="mt-amount">{formatHbar(p.totalAssets)} HBAR</span>
                       </div>
                     </div>
                   </td>
                   <td>
                     <div className="mt-cell">
-                      <span className="mt-usd-pill">{p.status === 1 ? "Active" : p.status === 2 ? "Paused" : "Inactive"}</span>
+                      <span className="mt-usd-pill">{p.status === 1 ? "Paused" : "Active"}</span>
                     </div>
                   </td>
                 </tr>

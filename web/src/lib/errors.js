@@ -1,6 +1,6 @@
 /**
  * Convert raw blockchain/wallet errors into short, user-friendly messages
- * tuned for Hedera testnet (HBAR gas, HTS association/KYC, USDC allowance).
+ * tuned for Hedera testnet (HBAR gas, HTS association/KYC).
  *
  * For contract reverts we dig through `err.cause` (viem stacks the revert
  * details there, not on the top-level message) so the user sees the on-chain
@@ -34,7 +34,6 @@ export function formatError(err) {
   if (/insufficient funds|insufficient_payer_balance|not enough hbar/i.test(msg)) return "Not enough HBAR for gas — fund your account from the Hedera testnet faucet (portal.hedera.com).";
   if (/token_not_associated|not associated|associate/i.test(msg)) return "Token not associated — associate the token to your account first, then retry.";
   if (/account_kyc_not_granted|kyc/i.test(msg)) return "KYC not granted yet — the vault grants KYC on your first deposit. Retry in a moment.";
-  if (/allowance|insufficient.*approv|spender_does_not_have_allowance/i.test(msg)) return "USDC allowance too low — approve the vault for this amount first.";
   if (/wallet not connected/i.test(msg)) return "Wallet not connected — click Connect first.";
   if (/wallet is still initializing/i.test(msg)) return "Wallet initializing — wait a second and retry.";
   if (/MetaMask account changed/i.test(msg)) return "MetaMask account changed — refresh and reconnect.";
@@ -48,7 +47,7 @@ export function formatError(err) {
     if (detail) return `Reverted: ${detail}`;
     const inline = msg.match(/reason:\s*(.+?)(\n|$)/i);
     if (inline?.[1]) return `Reverted: ${inline[1].trim()}`;
-    return "Reverted (no reason). You may not have associated the share token, USDC allowance may be too low, or you may be on the wrong account — please refresh and retry.";
+    return "Reverted (no reason). You may not have associated the share token, or you may be on the wrong account — please refresh and retry.";
   }
 
   const first = msg.split("\n")[0].trim();

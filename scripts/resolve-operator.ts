@@ -1,6 +1,6 @@
 /**
  * Resolve OPERATOR_ID (0.0.x) from OPERATOR_KEY by deriving the EVM address and looking it up
- * on the Mirror Node. Also reports HBAR + USDC balance so we can confirm the account is funded.
+ * on the Mirror Node. Also reports the HBAR balance so we can confirm the account is funded.
  *   pnpm tsx scripts/resolve-operator.ts
  */
 import "dotenv/config";
@@ -8,7 +8,6 @@ import { PrivateKey } from "@hashgraph/sdk";
 
 const keyStr = (process.env.OPERATOR_KEY ?? "").trim();
 const mirror = process.env.MIRROR_NODE_URL ?? "https://testnet.mirrornode.hedera.com/api/v1";
-const usdc = process.env.USDC_TOKEN_ID ?? "0.0.429274";
 
 if (!keyStr) throw new Error("OPERATOR_KEY missing in .env");
 
@@ -30,10 +29,7 @@ if (!res.ok) {
 const data: any = await res.json();
 const accountId = data.account;
 const hbarTinybar = Number(data.balance?.balance ?? 0);
-const tokens: any[] = data.balance?.tokens ?? [];
-const usdcRow = tokens.find((t) => t.token_id === usdc);
 
 console.log("OPERATOR_ID :", accountId);
 console.log("HBAR        :", (hbarTinybar / 1e8).toFixed(4), "ℏ");
-console.log("USDC assoc. :", usdcRow ? `yes (${(Number(usdcRow.balance) / 1e6).toFixed(2)} USDC)` : "NO — associate + fund USDC");
 console.log("\nRESOLVED_OPERATOR_ID=" + accountId);

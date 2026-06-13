@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { MOCK_MODE } from "../lib/config.js";
-import { formatUsdc, formatNav, assetsForShares } from "../lib/format.js";
+import { formatHbar, formatNav, assetsForShares } from "../lib/format.js";
 
-// Dashboard: the connected wallet's pool-share balances + their USDC value at
+// Dashboard: the connected wallet's pool-share balances + their HBAR value at
 // current NAV. Placeholder (zeroes) until the vault is deployed.
 export default function Dashboard({ contracts, refreshKey }) {
   const [rows, setRows] = useState([]);
-  const [usdcBalance, setUsdcBalance] = useState(null);
+  const [hbarBalance, setHbarBalance] = useState(null);
 
   useEffect(() => {
     if (!contracts) return;
@@ -14,9 +14,9 @@ export default function Dashboard({ contracts, refreshKey }) {
     (async () => {
       try {
         const pools = await contracts.getPools();
-        const [balances, usdc] = await Promise.all([
+        const [balances, hbar] = await Promise.all([
           Promise.all(pools.map((p) => contracts.getShareBalance(p.poolId))),
-          contracts.getUsdcBalance(),
+          contracts.getHbarBalance(),
         ]);
         if (cancelled) return;
         const next = pools.map((p, i) => {
@@ -25,7 +25,7 @@ export default function Dashboard({ contracts, refreshKey }) {
           return { poolId: p.poolId, name: p.name, network: p.network, navPerShare: p.navPerShare, shares, value };
         });
         setRows(next);
-        setUsdcBalance(usdc);
+        setHbarBalance(hbar);
       } catch {
         // leave previous
       }
@@ -48,11 +48,11 @@ export default function Dashboard({ contracts, refreshKey }) {
         <div className="balances-grid">
           <div className="balance-item">
             <div className="balance-label">Total share value</div>
-            <div className="balance-value">{formatUsdc(totalValue)} <span style={{ fontSize: "0.7em", color: "rgba(255,255,255,0.5)" }}>USDC</span></div>
+            <div className="balance-value">{formatHbar(totalValue)} <span style={{ fontSize: "0.7em", color: "rgba(255,255,255,0.5)" }}>HBAR</span></div>
           </div>
           <div className="balance-item">
-            <div className="balance-label"><img src="/logos/usd-coin-usdc-logo.svg" alt="USDC" className="balance-icon" /> USDC balance</div>
-            <div className="balance-value">{usdcBalance == null ? "—" : formatUsdc(usdcBalance)}</div>
+            <div className="balance-label"><img src="/logos/hedera.svg" alt="HBAR" className="balance-icon" /> HBAR balance</div>
+            <div className="balance-value">{hbarBalance == null ? "—" : formatHbar(hbarBalance)}</div>
           </div>
         </div>
       </div>
@@ -78,9 +78,9 @@ export default function Dashboard({ contracts, refreshKey }) {
                       <span className="mt-oracle-label" style={{ marginLeft: "0.5rem" }}>{r.network}</span>
                     </div>
                   </td>
-                  <td><div className="mt-cell"><span className="mt-amount">{formatUsdc(r.shares)}</span></div></td>
+                  <td><div className="mt-cell"><span className="mt-amount">{formatHbar(r.shares)}</span></div></td>
                   <td><div className="mt-cell"><span className="mt-rate">{formatNav(r.navPerShare)}</span></div></td>
-                  <td><div className="mt-cell"><span className="mt-amount">{formatUsdc(r.value)} USDC</span></div></td>
+                  <td><div className="mt-cell"><span className="mt-amount">{formatHbar(r.value)} HBAR</span></div></td>
                 </tr>
               ))}
             </tbody>
