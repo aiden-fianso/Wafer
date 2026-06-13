@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { getContract } from "viem";
-import { VAULT_ABI, ERC20_ABI, IHRC719_ABI } from "../lib/abi.js";
+import { VAULT_ABI, IHRC719_ABI } from "../lib/abi.js";
 import { ADDRESSES, MOCK_MODE, MOCK_POOLS } from "../lib/config.js";
-import { navPerShare as computeNav, sharesForAssets } from "../lib/format.js";
+import { navPerShare as computeNav, sharesForAssets, ONE } from "../lib/format.js";
 
 // Gas tuning. The Hedera testnet (Hashio) relay underestimates maxFeePerGas:
 // it caches a baseFee a few blocks back and rejects with "max fee per gas less
@@ -12,10 +12,14 @@ import { navPerShare as computeNav, sharesForAssets } from "../lib/format.js";
 const GAS_BASEFEE_MULTIPLIER = 5n;
 const GAS_PRIORITY_FEE_WEI = 100_000_000n; // 0.1 gwei
 
-// HTS-touching calls (deposit/redeem/approve/associate) need a pinned gasLimit
-// because Hashio mis-estimates precompile calls (SPEC §6, §11). ~1M is the
-// documented floor for HTS transfer/mint/burn paths.
+// HTS-touching calls (deposit/redeem/associate) need a pinned gasLimit because
+// Hashio mis-estimates precompile calls. ~1M is the documented floor for HTS
+// transfer/mint/burn paths.
 const HTS_GAS_LIMIT = 1_000_000n;
+
+// EVM <-> Hedera HBAR conversion: the contract accounts in tinybar (8 dp) but
+// msg.value / eth_getBalance are in weibar (18 dp). 1 tinybar = 1e10 weibar.
+const WEIBAR_PER_TINYBAR = 10_000_000_000n;
 
 export function useContracts(walletClient, publicClient, account) {
   // ---- viem contract wrappers ----
@@ -25,16 +29,6 @@ export function useContracts(walletClient, publicClient, account) {
     return getContract({
       address: ADDRESSES.vault,
       abi: VAULT_ABI,
-      client: readonly ? { public: publicClient } : { public: publicClient, wallet: walletClient },
-    });
-  }, [walletClient, publicClient]);
-
-  const erc20Contract = useCallback((addr, readonly = false) => {
-    if (!publicClient) return null;
-    if (!readonly && !walletClient) return null;
-    return getContract({
-      address: addr,
-      abi: ERC20_ABI,
       client: readonly ? { public: publicClient } : { public: publicClient, wallet: walletClient },
     });
   }, [walletClient, publicClient]);
@@ -75,7 +69,7 @@ export function useContracts(walletClient, publicClient, account) {
 
   // Throw on revert — viem's waitForTransactionReceipt resolves with a receipt
   // regardless of execution status. Re-simulate on revert to surface the
-  // on-chain reason (HTS SUCCESS-check reverts, allowance, association, etc.).
+  // on-chain reason (HTS SUCCESS-check reverts, association, etc.).
   const waitTx = useCallback(async (hash, simContext) => {
     const receipt = await publicClient.waitForTransactionReceipt({ hash });
     if (receipt.status === "success") return receipt;
@@ -123,7 +117,8 @@ export function useContracts(walletClient, publicClient, account) {
           vault.read.pools([BigInt(poolId)]),
           vault.read.navPerShare([BigInt(poolId)]),
         ]);
-        const [shareToken, totalShares, totalAssets, status] = pool;
+        // pools() → (shareToken, claimNft, totalAssets, totalShares, status)
+        const [shareToken, , totalAssets, totalShares, status] = pool;
         // Decorate with display metadata from MOCK_POOLS if a label exists for
         // this index (network/risk aren't on-chain).
         const meta = MOCK_POOLS[poolId] || {};
@@ -145,22 +140,22 @@ export function useContracts(walletClient, publicClient, account) {
     }
   }, [vaultContract]);
 
-  // NAV per share (6 dp) for a single pool.
+  // NAV per share (8 dp) for a single pool.
   const getNavPerShare = useCallback(async (poolId) => {
     if (MOCK_MODE) {
       const p = MOCK_POOLS[poolId];
-      return p ? p.navPerShare : 1_000_000n;
+      return p ? p.navPerShare : ONE;
     }
     const vault = vaultContract(true);
-    if (!vault) return 1_000_000n;
+    if (!vault) return ONE;
     try {
       return await vault.read.navPerShare([BigInt(poolId)]);
     } catch {
-      return 1_000_000n;
+      return ONE;
     }
   }, [vaultContract]);
 
-  // The connected wallet's share balance (6 dp) for a pool.
+  // The connected wallet's share balance (8 dp) for a pool.
   const getShareBalance = useCallback(async (poolId) => {
     if (!account) return null;
     if (MOCK_MODE) return 0n; // no on-chain position in mock mode
@@ -173,20 +168,20 @@ export function useContracts(walletClient, publicClient, account) {
     }
   }, [vaultContract, account]);
 
-  // The connected wallet's USDC balance (6 dp).
-  const getUsdcBalance = useCallback(async () => {
-    if (!account) return null;
-    if (MOCK_MODE) return null;
-    const usdc = erc20Contract(ADDRESSES.usdc, true);
-    if (!usdc) return null;
+  // The connected wallet's native HBAR balance, normalized to 8-dp tinybar so it
+  // formats with the same helpers as shares/NAV. eth_getBalance returns weibar
+  // (18 dp); tinybar = weibar / 1e10.
+  const getHbarBalance = useCallback(async () => {
+    if (!account || !publicClient) return null;
     try {
-      return await usdc.read.balanceOf([account]);
+      const weibar = await publicClient.getBalance({ address: account });
+      return weibar / WEIBAR_PER_TINYBAR;
     } catch {
       return null;
     }
-  }, [erc20Contract, account]);
+  }, [publicClient, account]);
 
-  // ---- ASSOCIATION + APPROVAL (deposit/redeem prerequisites, SPEC §4/§6) ----
+  // ---- ASSOCIATION (deposit prerequisite) ----
 
   // Ensure the account is associated with an HTS token (via the IHRC719 facade
   // at the token's EVM address). No-op if already associated. Stubbed in mock
@@ -209,32 +204,13 @@ export function useContracts(walletClient, publicClient, account) {
     await waitTx(hash, { address: tokenAddr, abi: IHRC719_ABI, functionName: "associate", args: [] });
   }, [hrc719Contract, getGasOverrides, waitTx, assertAccountSync]);
 
-  // Approve the vault to pull `assets` (6 dp) of USDC. Skips if allowance is
-  // already sufficient. Stubbed in mock mode.
-  const approveUsdc = useCallback(async (assets) => {
-    if (MOCK_MODE) return;
-    await assertAccountSync();
-    const usdc = erc20Contract(ADDRESSES.usdc);
-    if (!usdc) throw new Error("Wallet not connected — please connect first.");
-    const amount = BigInt(assets);
-    try {
-      const current = await usdc.read.allowance([account, ADDRESSES.vault]);
-      if (current >= amount) return;
-    } catch {
-      // Read failed — proceed to approve defensively.
-    }
-    const overrides = await getGasOverrides(HTS_GAS_LIMIT);
-    const args = [ADDRESSES.vault, amount];
-    const hash = await usdc.write.approve(args, overrides);
-    await waitTx(hash, { address: ADDRESSES.usdc, abi: ERC20_ABI, functionName: "approve", args });
-  }, [erc20Contract, getGasOverrides, waitTx, assertAccountSync, account]);
-
   // ---- DEPOSIT / REDEEM ----
 
-  // Full deposit flow (SPEC §6): ensureAssociated(share) → approve(vault, usdc)
-  // → deposit(poolId, assets). shareToken is the pool's share token EVM address
-  // (from getPools()[poolId].shareToken). In mock mode every step is a stub so
-  // the UI flow is exercised end-to-end without a deployed contract.
+  // Full deposit flow: ensureAssociated(share) → deposit(poolId) PAYABLE with
+  // native HBAR as msg.value. `assets` is 8-dp tinybar; msg.value is weibar
+  // (tinybar × 1e10). There is no approve step — settlement is native HBAR.
+  // shareToken is the pool's share token EVM address (getPools()[poolId].shareToken).
+  // In mock mode every step is a stub so the UI flow runs without a contract.
   const deposit = useCallback(async (poolId, assets, shareToken) => {
     if (MOCK_MODE) {
       // Simulate latency so the UI shows its busy/processing states.
@@ -242,19 +218,19 @@ export function useContracts(walletClient, publicClient, account) {
       return;
     }
     await assertAccountSync();
-    const amount = BigInt(assets);
-    if (amount <= 0n) throw new Error("Amount must be greater than 0.");
+    const tinybar = BigInt(assets);
+    if (tinybar <= 0n) throw new Error("Amount must be greater than 0.");
     if (shareToken) await ensureAssociated(shareToken);
-    await approveUsdc(amount);
     const vault = vaultContract();
     if (!vault) throw new Error("Wallet not connected — please connect first.");
-    const args = [BigInt(poolId), amount];
-    const overrides = await getGasOverrides(HTS_GAS_LIMIT);
+    const value = tinybar * WEIBAR_PER_TINYBAR;
+    const args = [BigInt(poolId)];
+    const overrides = { ...(await getGasOverrides(HTS_GAS_LIMIT)), value };
     const hash = await vault.write.deposit(args, overrides);
-    await waitTx(hash, { address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "deposit", args });
-  }, [vaultContract, ensureAssociated, approveUsdc, getGasOverrides, waitTx, assertAccountSync]);
+    await waitTx(hash, { address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "deposit", args, value });
+  }, [vaultContract, ensureAssociated, getGasOverrides, waitTx, assertAccountSync]);
 
-  // Redeem shares → USDC at NAV. Redeem-at-NAV is the guaranteed exit (SPEC §5).
+  // Redeem shares → native HBAR at NAV. Redeem-at-NAV is the guaranteed exit.
   const redeem = useCallback(async (poolId, shares) => {
     if (MOCK_MODE) {
       await new Promise((r) => setTimeout(r, 600));
@@ -271,7 +247,7 @@ export function useContracts(walletClient, publicClient, account) {
     await waitTx(hash, { address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "redeem", args });
   }, [vaultContract, getGasOverrides, waitTx, assertAccountSync]);
 
-  // Deposit preview: shares = assets / navPerShare (all 6-dp).
+  // Deposit preview: shares = assets / navPerShare (all 8-dp).
   const previewDeposit = useCallback((assets, nav) => sharesForAssets(assets, nav), []);
 
   // Local NAV recompute helper (mirror of the on-chain view) for display.
@@ -281,15 +257,14 @@ export function useContracts(walletClient, publicClient, account) {
     getPools,
     getNavPerShare,
     getShareBalance,
-    getUsdcBalance,
+    getHbarBalance,
     ensureAssociated,
-    approveUsdc,
     deposit,
     redeem,
     previewDeposit,
     localNav,
   }), [
-    getPools, getNavPerShare, getShareBalance, getUsdcBalance,
-    ensureAssociated, approveUsdc, deposit, redeem, previewDeposit, localNav,
+    getPools, getNavPerShare, getShareBalance, getHbarBalance,
+    ensureAssociated, deposit, redeem, previewDeposit, localNav,
   ]);
 }

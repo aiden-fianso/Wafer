@@ -25,7 +25,7 @@ Keep branches short-lived (hours, not days). Rebase on `main` before opening the
 `type(scope): imperative, lowercase summary`
 
 ```
-feat(vault): mint pool shares on USDC deposit
+feat(vault): mint pool shares on HBAR deposit
 fix(nav): clamp accretion fraction to the claim term
 docs(tracks): add Privy integration plan
 chore(ci): add typecheck workflow

@@ -5,7 +5,7 @@ const CARDS = [
     title: "FINANCE",
     counter: "01 / 03",
     className: "p1",
-    text: "DePIN operators sell a slice of their future on-chain rewards for upfront USDC. The vault mints a reward-claim NFT and advances the principal — closing the timing gap between hardware spend and on-chain earnings.",
+    text: "DePIN operators sell a slice of their future on-chain rewards for upfront HBAR. The vault mints a reward-claim NFT and advances the principal — closing the timing gap between hardware spend and on-chain earnings.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="65%" height="65%">
         <path d="M3 17l6-6 4 4 8-8" />
@@ -17,14 +17,14 @@ const CARDS = [
     title: "EARN",
     counter: "02 / 03",
     className: "p2",
-    text: "Investors deposit USDC and receive a fungible pool-share token — exposure to a basket of reward streams. NAV per share rises continuously as reward USDC settles into the vault. No maturity on the share; redeem at NAV any time.",
-    icon: <img src="/logos/usd-coin-usdc-logo.svg" alt="USDC" />,
+    text: "Investors deposit HBAR and receive a fungible pool-share token — exposure to a basket of reward streams. NAV per share rises continuously as reward HBAR settles into the vault. No maturity on the share; redeem at NAV any time.",
+    icon: <img src="/logos/hedera.svg" alt="HBAR" />,
   },
   {
     title: "ON HEDERA",
     counter: "03 / 03",
     className: "p3",
-    text: "The vault is a smart contract on the Hedera EVM, using HTS for tokens and real Circle USDC for settlement. Verifiable on HashScan, reconciled via the Mirror Node, with a SaucerSwap secondary market for the share token.",
+    text: "The vault is a smart contract on the Hedera EVM, using HTS for tokens and native HBAR for settlement. Verifiable on HashScan, reconciled via the Mirror Node, with a SaucerSwap secondary market for the share token.",
     icon: <img src="/logos/hedera.svg" alt="Hedera" />,
   },
 ];

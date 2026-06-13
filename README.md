@@ -58,7 +58,7 @@ scripts/
   smoke.ts                 full lifecycle LIVE: finance → deposit → settle (NAV↑) → redeem, with links
   resolve-operator.ts      derive OPERATOR_ID from the key (Mirror Node)
 test/hbar-units.test.ts    pure-logic NAV/tinybar unit tests (hardhat + chai), `pnpm test`
-web/                       Vite + React + viem — talks to the contract (mock mode until rewired to HBAR)
+web/                       Vite + React + viem — HBAR-wired; mock mode until VITE_VAULT_ADDRESS is set
 deployments/testnet.json   committed: vault + token + pool ids + HashScan/Sourcify links
 docs/ONE-PAGER.md · docs/TRACKS.md · SPEC.md · CONTRIBUTING.md
 ```
@@ -91,7 +91,8 @@ holds **~1000 testnet HBAR — sufficient** for the MVP.
 `pnpm run smoke` runs the full lifecycle live and prints HashScan links for every tx: it finances a
 claim (advances HBAR), associates the share token, deposits HBAR, settles rewards (NAV rises), then
 redeems at NAV. The current `deployments/testnet.json` records the live vault, tokens, and pool.
-Once `web/` is rewired to HBAR + the deployed address (next increment), the app reads NAV/pools/
+`web/` is now HBAR-wired (deposit is native-HBAR `payable`, 8-dp tinybar accounting, ABI matched to
+the deployed contract). Set `VITE_VAULT_ADDRESS` to the deployed vault and the app reads NAV/pools/
 balances from the contract and the activity feed from the Mirror Node.
 
 ## License

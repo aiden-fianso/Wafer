@@ -3,7 +3,7 @@ import { createWalletClient, createPublicClient, custom, http, defineChain } fro
 import { CHAIN_ID, CHAIN_NAME, RPC_URL, EXPLORER_URL, NATIVE_CURRENCY } from "../lib/config.js";
 
 // Hedera Testnet as a viem chain. nativeCurrency.decimals = 18 (EVM weibar) —
-// keep HBAR/gas math separate from 6-dp USDC accounting (SPEC §6).
+// keep HBAR/gas math (18-dp weibar) separate from 8-dp share accounting.
 export const hederaTestnet = defineChain({
   id: CHAIN_ID,
   name: CHAIN_NAME,

@@ -1,20 +1,23 @@
 // Display + money helpers for Wafer.
 //
-// Money rule: USDC and pool shares are 6-decimal integer micro-units (bigint)
-// end-to-end. Only convert to a human string at the display edge — these
-// helpers ARE that edge. NAV per share is also 6-dp (micro-USDC per share).
+// Money rule: HBAR and pool shares are 8-decimal integer units (tinybar / share
+// micro-units, bigint) end-to-end — matching the WaferVault contract (ONE = 1e8,
+// 1 HBAR = 1e8 tinybar). Only convert to a human string at the display edge —
+// these helpers ARE that edge. NAV per share is also 8-dp (tinybar per share).
+// The EVM weibar boundary (18 dp for msg.value / native balance) is handled in
+// useContracts.js, never here.
 
 const MISSING = "---";
-export const DECIMALS = 6;
-export const ONE = 1_000_000n; // 1.000000 in 6-dp micro-units
+export const DECIMALS = 8;
+export const ONE = 100_000_000n; // 1.00000000 in 8-dp units (1 HBAR = 1e8 tinybar)
 
-// Format a 6-dp micro-unit bigint as a human number string (e.g. 1042000n →
-// "1.042000", trimmed to `maxFractionDigits`). Accepts bigint | number | null.
-export function formatUnits6(micro, maxFractionDigits = 2) {
-  if (micro === null || micro === undefined) return MISSING;
+// Format an 8-dp unit bigint as a human number string (e.g. 104200000n →
+// "1.042", trimmed to `maxFractionDigits`). Accepts bigint | number | null.
+export function formatUnits8(units, maxFractionDigits = 2) {
+  if (units === null || units === undefined) return MISSING;
   let v;
   try {
-    v = typeof micro === "bigint" ? micro : BigInt(micro);
+    v = typeof units === "bigint" ? units : BigInt(units);
   } catch {
     return MISSING;
   }
@@ -32,14 +35,14 @@ export function formatUnits6(micro, maxFractionDigits = 2) {
   return neg ? `-${out}` : out;
 }
 
-// Convenience: format as a USDC amount (6 dp → "1,234.56").
-export function formatUsdc(micro) {
-  return formatUnits6(micro, 2);
+// Convenience: format as an HBAR amount (8 dp → "1,234.56").
+export function formatHbar(units) {
+  return formatUnits8(units, 2);
 }
 
-// Format NAV per share with more precision (6 dp → "1.0420").
-export function formatNav(micro) {
-  return formatUnits6(micro, 4);
+// Format NAV per share with more precision (8 dp → "1.0420").
+export function formatNav(units) {
+  return formatUnits8(units, 4);
 }
 
 export function formatPercent(ratio, digits = 2) {
@@ -47,14 +50,14 @@ export function formatPercent(ratio, digits = 2) {
   return `${(ratio * 100).toFixed(digits)}%`;
 }
 
-// Parse a human decimal string ("12.5") into 6-dp micro-units (bigint).
+// Parse a human decimal string ("12.5") into 8-dp units (tinybar, bigint).
 // Returns 0n for empty/invalid input.
-export function parseUnits6(value) {
+export function parseUnits8(value) {
   if (value === null || value === undefined) return 0n;
   const s = String(value).trim();
   if (!s) return 0n;
   const [whole = "0", frac = ""] = s.split(".");
-  const fracPadded = (frac + "000000").slice(0, DECIMALS);
+  const fracPadded = (frac + "00000000").slice(0, DECIMALS);
   try {
     const w = BigInt(whole.replace(/[^0-9]/g, "") || "0");
     const f = BigInt(fracPadded.replace(/[^0-9]/g, "") || "0");
@@ -64,29 +67,29 @@ export function parseUnits6(value) {
   }
 }
 
-// shares = assets * 1e6 / navPerShare   (deposit preview, SPEC §6)
-// Both assets and navPerShare are 6-dp micro-units; result is 6-dp shares.
-export function sharesForAssets(assetsMicro, navPerShareMicro) {
-  if (assetsMicro == null || navPerShareMicro == null) return null;
-  const a = BigInt(assetsMicro);
-  const nav = BigInt(navPerShareMicro);
+// shares = assets * 1e8 / navPerShare   (deposit preview)
+// Both assets and navPerShare are 8-dp units; result is 8-dp shares.
+export function sharesForAssets(assetsUnits, navPerShareUnits) {
+  if (assetsUnits == null || navPerShareUnits == null) return null;
+  const a = BigInt(assetsUnits);
+  const nav = BigInt(navPerShareUnits);
   if (nav <= 0n) return 0n;
   return (a * ONE) / nav;
 }
 
-// assets = shares * navPerShare / 1e6   (redeem preview, SPEC §6)
-export function assetsForShares(sharesMicro, navPerShareMicro) {
-  if (sharesMicro == null || navPerShareMicro == null) return null;
-  const s = BigInt(sharesMicro);
-  const nav = BigInt(navPerShareMicro);
+// assets = shares * navPerShare / 1e8   (redeem preview)
+export function assetsForShares(sharesUnits, navPerShareUnits) {
+  if (sharesUnits == null || navPerShareUnits == null) return null;
+  const s = BigInt(sharesUnits);
+  const nav = BigInt(navPerShareUnits);
   return (s * nav) / ONE;
 }
 
-// navPerShare = totalShares == 0 ? 1e6 : totalAssets * 1e6 / totalShares (6 dp)
-export function navPerShare(totalAssetsMicro, totalSharesMicro) {
-  const ts = BigInt(totalSharesMicro ?? 0n);
+// navPerShare = totalShares == 0 ? 1e8 : totalAssets * 1e8 / totalShares (8 dp)
+export function navPerShare(totalAssetsUnits, totalSharesUnits) {
+  const ts = BigInt(totalSharesUnits ?? 0n);
   if (ts === 0n) return ONE;
-  const ta = BigInt(totalAssetsMicro ?? 0n);
+  const ta = BigInt(totalAssetsUnits ?? 0n);
   return (ta * ONE) / ts;
 }
 

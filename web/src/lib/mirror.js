@@ -23,15 +23,15 @@ function normalizeEvent(decoded, log) {
   const base = { type: eventName, ageSeconds, txHash: log?.transaction_hash ?? null };
   switch (eventName) {
     case "Deposit":
-      return { ...base, poolId: Number(args.poolId), account: args.investor, assets: args.assets, shares: args.shares };
+      return { ...base, poolId: Number(args.poolId), account: args.investor, assets: args.assetsTinybar, shares: args.sharesMinted };
     case "Redeem":
-      return { ...base, poolId: Number(args.poolId), account: args.investor, shares: args.shares, assets: args.assets };
+      return { ...base, poolId: Number(args.poolId), account: args.investor, shares: args.sharesBurned, assets: args.assetsTinybar };
     case "ClaimFinanced":
-      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), account: args.operator, assets: args.principal };
+      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), account: args.operator, assets: args.principalTinybar };
     case "RewardRouted":
-      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), assets: args.amount };
+      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), assets: args.amountTinybar };
     case "Default":
-      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), assets: args.writedown };
+      return { ...base, poolId: Number(args.poolId), claimId: Number(args.claimId), assets: args.writedownTinybar };
     default:
       return base;
   }
@@ -68,14 +68,14 @@ export async function readActivity() {
 
 // Aggregate TVL across pools for the landing page hero. In mock mode this sums
 // MOCK_POOLS.totalAssets; once live, it can be swapped to read pools() via the
-// public client. Returns a Number of whole USDC. Never throws.
+// public client. Returns a Number of whole HBAR. Never throws.
 export async function readAggregateStats() {
   try {
     const totalAssets = MOCK_POOLS.reduce((acc, p) => acc + p.totalAssets, 0n);
     const totalShares = MOCK_POOLS.reduce((acc, p) => acc + p.totalShares, 0n);
     return {
-      tvl: Number(totalAssets / 1_000_000n),
-      shares: Number(totalShares / 1_000_000n),
+      tvl: Number(totalAssets / 100_000_000n),
+      shares: Number(totalShares / 100_000_000n),
       ok: true,
     };
   } catch {

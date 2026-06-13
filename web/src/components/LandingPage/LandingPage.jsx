@@ -109,7 +109,7 @@ export default function LandingPage({ onConnect, connecting, refreshKey }) {
 
       <section className="cta-section">
         <h2>Liquidity for DePIN</h2>
-        <p>Wafer turns DePIN operators' future on-chain rewards into upfront USDC, and gives investors a NAV-appreciating pool-share token they can redeem any time. InfraFi, on Hedera testnet.</p>
+        <p>Wafer turns DePIN operators' future on-chain rewards into upfront HBAR, and gives investors a NAV-appreciating pool-share token they can redeem any time. InfraFi, on Hedera testnet.</p>
         <div className="cta-buttons">
           <button className="gradient-btn" onClick={onConnect} disabled={connecting}>
             {connecting ? "Connecting..." : "Launch App"}

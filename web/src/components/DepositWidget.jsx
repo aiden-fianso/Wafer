@@ -1,64 +1,65 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MOCK_MODE } from "../lib/config.js";
 import {
-  formatUsdc, formatNav, sanitizeAmountInput, parseUnits6,
-  sharesForAssets, assetsForShares,
+  formatHbar, formatNav, sanitizeAmountInput, parseUnits8,
+  sharesForAssets, assetsForShares, ONE,
 } from "../lib/format.js";
 import { formatError } from "../lib/errors.js";
 
 // Deposit / Redeem panel.
 //
-// Deposit:  USDC → mint shares at NAV.  Preview: shares = assets / navPerShare.
-// Redeem:   shares → USDC at NAV.       Preview: assets = shares * navPerShare.
+// Deposit:  HBAR → mint shares at NAV.  Preview: shares = assets / navPerShare.
+// Redeem:   shares → HBAR at NAV.       Preview: assets = shares * navPerShare.
 //
-// The deposit action runs the full SPEC §6 flow inside contracts.deposit():
-//   ensureAssociated(shareToken) → approve(vault, usdc) → deposit(poolId, assets)
-// Each step is stubbed in mock mode but the flow is exercised.
+// The deposit action runs the full flow inside contracts.deposit():
+//   ensureAssociated(shareToken) → deposit(poolId) PAYABLE (native HBAR msg.value)
+// There is no approve step — settlement is native HBAR. Each step is stubbed in
+// mock mode but the flow is exercised.
 export default function DepositWidget({ pool, contracts, onStatus, refreshKey }) {
   const [tab, setTab] = useState("deposit");
   const [amount, setAmount] = useState("");
   const [isBusy, setIsBusy] = useState(false);
-  const [usdcBalance, setUsdcBalance] = useState(null);
+  const [hbarBalance, setHbarBalance] = useState(null);
   const [shareBalance, setShareBalance] = useState(null);
   const inFlightRef = useRef(false);
 
-  const nav = pool?.navPerShare ?? 1_000_000n;
+  const nav = pool?.navPerShare ?? ONE;
 
   useEffect(() => {
     if (!contracts || !pool) return;
     let cancelled = false;
     (async () => {
       try {
-        const [usdc, shares] = await Promise.all([
-          contracts.getUsdcBalance(),
+        const [hbar, shares] = await Promise.all([
+          contracts.getHbarBalance(),
           contracts.getShareBalance(pool.poolId),
         ]);
         if (cancelled) return;
-        setUsdcBalance(usdc);
+        setHbarBalance(hbar);
         setShareBalance(shares);
       } catch { /* leave previous */ }
     })();
     return () => { cancelled = true; };
   }, [contracts, pool, refreshKey]);
 
-  const amountMicro = parseUnits6(amount);
+  const amountUnits = parseUnits8(amount);
   const isDeposit = tab === "deposit";
-  const balanceMicro = isDeposit ? usdcBalance : shareBalance;
-  const balanceLabel = isDeposit ? "USDC" : "shares";
+  const balanceUnits = isDeposit ? hbarBalance : shareBalance;
+  const balanceLabel = isDeposit ? "HBAR" : "shares";
 
   // Live preview.
-  const previewMicro = isDeposit
-    ? sharesForAssets(amountMicro, nav)   // shares minted
-    : assetsForShares(amountMicro, nav);  // USDC returned
-  const previewLabel = isDeposit ? "shares" : "USDC";
+  const previewUnits = isDeposit
+    ? sharesForAssets(amountUnits, nav)   // shares minted
+    : assetsForShares(amountUnits, nav);  // HBAR returned
+  const previewLabel = isDeposit ? "shares" : "HBAR";
 
-  const overBalance = balanceMicro != null && amountMicro > balanceMicro;
-  const isDisabled = amountMicro <= 0n || overBalance || isBusy;
+  const overBalance = balanceUnits != null && amountUnits > balanceUnits;
+  const isDisabled = amountUnits <= 0n || overBalance || isBusy;
 
   const handleAmountChange = (e) => setAmount(sanitizeAmountInput(e.target.value));
   const handleMax = () => {
-    if (balanceMicro == null) return;
-    setAmount(formatUsdc(balanceMicro).replace(/,/g, ""));
+    if (balanceUnits == null) return;
+    setAmount(formatHbar(balanceUnits).replace(/,/g, ""));
   };
 
   const handleAction = async () => {
@@ -67,12 +68,12 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
     setIsBusy(true);
     try {
       if (isDeposit) {
-        onStatus("Associating share token + approving USDC…");
-        await contracts.deposit(pool.poolId, amountMicro, pool.shareToken);
+        onStatus("Associating share token + depositing HBAR…");
+        await contracts.deposit(pool.poolId, amountUnits, pool.shareToken);
         onStatus("Deposit successful!");
       } else {
         onStatus("Redeeming shares at NAV…");
-        await contracts.redeem(pool.poolId, amountMicro);
+        await contracts.redeem(pool.poolId, amountUnits);
         onStatus("Redeem successful!");
       }
       setAmount("");
@@ -86,11 +87,11 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
 
   const actionLabel = isBusy
     ? "Processing…"
-    : amountMicro <= 0n
+    : amountUnits <= 0n
       ? "Enter an amount"
       : overBalance
         ? "Insufficient balance"
-        : isDeposit ? "Deposit USDC" : "Redeem shares";
+        : isDeposit ? "Deposit HBAR" : "Redeem shares";
 
   return (
     <div className="vault-panel">
@@ -105,7 +106,7 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
 
       <div className="vault-input-card">
         <div className="vault-input-header">
-          <span className="vault-input-title">{isDeposit ? "Deposit USDC" : "Redeem shares"}</span>
+          <span className="vault-input-title">{isDeposit ? "Deposit HBAR" : "Redeem shares"}</span>
         </div>
         <div className="vault-input-field">
           <input
@@ -118,12 +119,12 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
           />
         </div>
         <div className="vault-input-footer">
-          <span className="vault-dollar-value">NAV {formatNav(nav)} USDC / share</span>
+          <span className="vault-dollar-value">NAV {formatNav(nav)} HBAR / share</span>
           <div className="vault-balance-row">
             <span className="vault-balance-label">
-              {balanceMicro == null ? "—" : formatUsdc(balanceMicro)} {balanceLabel}
+              {balanceUnits == null ? "—" : formatHbar(balanceUnits)} {balanceLabel}
             </span>
-            <button type="button" className="vault-max-btn" onClick={handleMax} disabled={balanceMicro == null}>MAX</button>
+            <button type="button" className="vault-max-btn" onClick={handleMax} disabled={balanceUnits == null}>MAX</button>
           </div>
         </div>
       </div>
@@ -135,28 +136,28 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
-          <span>Insufficient balance. You have {formatUsdc(balanceMicro)} {balanceLabel}.</span>
+          <span>Insufficient balance. You have {formatHbar(balanceUnits)} {balanceLabel}.</span>
         </div>
       )}
 
       <div className="vault-summary">
         <div className="vault-summary-row">
           <span className="vault-summary-label">{isDeposit ? "You deposit" : "You redeem"}</span>
-          <span className="vault-summary-value">{formatUsdc(amountMicro)} {isDeposit ? "USDC" : "shares"}</span>
+          <span className="vault-summary-value">{formatHbar(amountUnits)} {isDeposit ? "HBAR" : "shares"}</span>
         </div>
         <div className="vault-summary-row">
-          <span className="vault-summary-label">{isDeposit ? "Shares minted" : "USDC returned"} (est.)</span>
-          <span className="vault-summary-value vault-apy">{formatUsdc(previewMicro)} {previewLabel}</span>
+          <span className="vault-summary-label">{isDeposit ? "Shares minted" : "HBAR returned"} (est.)</span>
+          <span className="vault-summary-value vault-apy">{formatHbar(previewUnits)} {previewLabel}</span>
         </div>
         <div className="vault-summary-row">
           <span className="vault-summary-label">NAV / share</span>
-          <span className="vault-summary-value">{formatNav(nav)} USDC</span>
+          <span className="vault-summary-value">{formatNav(nav)} HBAR</span>
         </div>
         {isDeposit && (
           <div className="vault-summary-row">
             <span className="vault-summary-label">Steps</span>
             <span className="vault-summary-value" style={{ fontSize: "0.75rem", opacity: 0.7 }}>
-              associate → approve → deposit
+              associate → deposit
             </span>
           </div>
         )}

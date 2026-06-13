@@ -57,17 +57,17 @@ export default function BeamSection() {
             <div className="beam-row">
               <div className="beam-circle" ref={b2}><img src="/logos/hedera.svg" alt="ENERGY-A pool" /></div>
               <div className="beam-circle center" ref={bC}>{WAFER_LOGO}</div>
-              <div className="beam-circle" ref={b6}><img src="/logos/usd-coin-usdc-logo.svg" alt="USDC" /></div>
+              <div className="beam-circle" ref={b6}><img src="/logos/hedera.svg" alt="HBAR" /></div>
             </div>
             <div className="beam-row">
               <div className="beam-circle" ref={b3}><img src="/logos/hedera.svg" alt="DePIN operator" /></div>
-              <div className="beam-circle" ref={b7}><img src="/logos/usd-coin-usdc-logo.svg" alt="USDC" /></div>
+              <div className="beam-circle" ref={b7}><img src="/logos/hedera.svg" alt="HBAR" /></div>
             </div>
           </div>
         </div>
         <div className="beam-text-side">
-          <h2><span className="line-1">DePIN rewards in,</span><br />USDC liquidity out</h2>
-          <p>Wafer pools standardize DePIN reward streams by network and risk. Operators finance future on-chain rewards for upfront USDC; investors hold a fungible pool-share token whose NAV rises as reward USDC flows in — redeemable at NAV, tradable on SaucerSwap. Built on Hedera HTS, settled in real Circle USDC.</p>
+          <h2><span className="line-1">DePIN rewards in,</span><br />HBAR liquidity out</h2>
+          <p>Wafer pools standardize DePIN reward streams by network and risk. Operators finance future on-chain rewards for upfront HBAR; investors hold a fungible pool-share token whose NAV rises as reward HBAR flows in — redeemable at NAV, tradable on SaucerSwap. Built on Hedera HTS, settled in native HBAR.</p>
         </div>
       </div>
     </section>
