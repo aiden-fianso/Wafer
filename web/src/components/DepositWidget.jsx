@@ -11,10 +11,12 @@ import { formatError } from "../lib/errors.js";
 // Deposit:  HBAR → mint shares at NAV.  Preview: shares = assets / navPerShare.
 // Redeem:   shares → HBAR at NAV.       Preview: assets = shares * navPerShare.
 //
-// The deposit action runs the full flow inside contracts.deposit():
+// Deposit runs the full flow inside contracts.deposit():
 //   ensureAssociated(shareToken) → deposit(poolId) PAYABLE (native HBAR msg.value)
-// There is no approve step — settlement is native HBAR. Each step is stubbed in
-// mock mode but the flow is exercised.
+// Settlement is native HBAR, so deposit needs no token approve. Redeem DOES need
+// an approve: the vault pulls shares from the investor, so contracts.redeem()
+// does ensureShareAllowance(shareToken) → redeem(poolId, shares). Each step is
+// stubbed in mock mode but the flow is exercised.
 export default function DepositWidget({ pool, contracts, onStatus, refreshKey }) {
   const [tab, setTab] = useState("deposit");
   const [amount, setAmount] = useState("");
@@ -72,8 +74,8 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
         await contracts.deposit(pool.poolId, amountUnits, pool.shareToken);
         onStatus("Deposit successful!");
       } else {
-        onStatus("Redeeming shares at NAV…");
-        await contracts.redeem(pool.poolId, amountUnits);
+        onStatus("Approving share allowance + redeeming at NAV…");
+        await contracts.redeem(pool.poolId, amountUnits, pool.shareToken);
         onStatus("Redeem successful!");
       }
       setAmount("");
@@ -153,14 +155,12 @@ export default function DepositWidget({ pool, contracts, onStatus, refreshKey })
           <span className="vault-summary-label">NAV / share</span>
           <span className="vault-summary-value">{formatNav(nav)} HBAR</span>
         </div>
-        {isDeposit && (
-          <div className="vault-summary-row">
-            <span className="vault-summary-label">Steps</span>
-            <span className="vault-summary-value" style={{ fontSize: "0.75rem", opacity: 0.7 }}>
-              associate → deposit
-            </span>
-          </div>
-        )}
+        <div className="vault-summary-row">
+          <span className="vault-summary-label">Steps</span>
+          <span className="vault-summary-value" style={{ fontSize: "0.75rem", opacity: 0.7 }}>
+            {isDeposit ? "associate → deposit" : "approve → redeem"}
+          </span>
+        </div>
       </div>
 
       <button

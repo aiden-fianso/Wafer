@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { getContract } from "viem";
-import { VAULT_ABI, IHRC719_ABI } from "../lib/abi.js";
+import { VAULT_ABI, IHRC719_ABI, HTS_ERC20_ABI } from "../lib/abi.js";
 import { ADDRESSES, MOCK_MODE, MOCK_POOLS } from "../lib/config.js";
 import { navPerShare as computeNav, sharesForAssets, ONE } from "../lib/format.js";
 
@@ -40,6 +40,18 @@ export function useContracts(walletClient, publicClient, account) {
       address: tokenAddr,
       abi: IHRC719_ABI,
       client: { public: publicClient, wallet: walletClient },
+    });
+  }, [walletClient, publicClient]);
+
+  // HTS ERC-20 facade — also at the token's own EVM address. Used for the
+  // approve/allowance the vault's redeem() needs to pull shares.
+  const htsErc20Contract = useCallback((tokenAddr, readonly = false) => {
+    if (!publicClient) return null;
+    if (!readonly && !walletClient) return null;
+    return getContract({
+      address: tokenAddr,
+      abi: HTS_ERC20_ABI,
+      client: readonly ? { public: publicClient } : { public: publicClient, wallet: walletClient },
     });
   }, [walletClient, publicClient]);
 
@@ -204,6 +216,34 @@ export function useContracts(walletClient, publicClient, account) {
     await waitTx(hash, { address: tokenAddr, abi: IHRC719_ABI, functionName: "associate", args: [] });
   }, [hrc719Contract, getGasOverrides, waitTx, assertAccountSync]);
 
+  // ---- SHARE ALLOWANCE (redeem prerequisite) ----
+
+  // Ensure the vault has an HTS allowance to pull `shares` from the investor on
+  // the share token. redeem() does transferToken(share, investor → vault), which
+  // requires the investor to have approve()'d the vault first. We approve via the
+  // share token's ERC-20 facade. No-op if the standing allowance already covers
+  // the amount. Gas is pinned (HTS precompile path).
+  const ensureShareAllowance = useCallback(async (shareToken, shares) => {
+    if (MOCK_MODE) return;
+    if (!shareToken || shareToken === "0x0000000000000000000000000000000000000000") {
+      throw new Error("Share token address unavailable — reload the pool and retry.");
+    }
+    await assertAccountSync();
+    const tokenRead = htsErc20Contract(shareToken, true);
+    const amount = BigInt(shares);
+    try {
+      const current = await tokenRead.read.allowance([account, ADDRESSES.vault]);
+      if (BigInt(current) >= amount) return; // standing allowance already covers it
+    } catch {
+      // allowance read may not be exposed on every facade build — fall through and approve.
+    }
+    const token = htsErc20Contract(shareToken);
+    if (!token) throw new Error("Wallet not connected — please connect first.");
+    const overrides = await getGasOverrides(HTS_GAS_LIMIT);
+    const hash = await token.write.approve([ADDRESSES.vault, amount], overrides);
+    await waitTx(hash, { address: shareToken, abi: HTS_ERC20_ABI, functionName: "approve", args: [ADDRESSES.vault, amount] });
+  }, [htsErc20Contract, getGasOverrides, waitTx, assertAccountSync, account]);
+
   // ---- DEPOSIT / REDEEM ----
 
   // Full deposit flow: ensureAssociated(share) → deposit(poolId) PAYABLE with
@@ -231,7 +271,10 @@ export function useContracts(walletClient, publicClient, account) {
   }, [vaultContract, ensureAssociated, getGasOverrides, waitTx, assertAccountSync]);
 
   // Redeem shares → native HBAR at NAV. Redeem-at-NAV is the guaranteed exit.
-  const redeem = useCallback(async (poolId, shares) => {
+  // The vault pulls shares from the investor, so we approve the vault on the
+  // share token (HTS allowance) first, then call redeem(poolId, shares).
+  // `shareToken` is the pool's share token EVM address (getPools()[poolId].shareToken).
+  const redeem = useCallback(async (poolId, shares, shareToken) => {
     if (MOCK_MODE) {
       await new Promise((r) => setTimeout(r, 600));
       return;
@@ -241,11 +284,13 @@ export function useContracts(walletClient, publicClient, account) {
     if (amount <= 0n) throw new Error("Amount must be greater than 0.");
     const vault = vaultContract();
     if (!vault) throw new Error("Wallet not connected — please connect first.");
+    const token = shareToken || ADDRESSES.shareToken;
+    await ensureShareAllowance(token, amount);
     const args = [BigInt(poolId), amount];
     const overrides = await getGasOverrides(HTS_GAS_LIMIT);
     const hash = await vault.write.redeem(args, overrides);
     await waitTx(hash, { address: ADDRESSES.vault, abi: VAULT_ABI, functionName: "redeem", args });
-  }, [vaultContract, getGasOverrides, waitTx, assertAccountSync]);
+  }, [vaultContract, ensureShareAllowance, getGasOverrides, waitTx, assertAccountSync]);
 
   // Deposit preview: shares = assets / navPerShare (all 8-dp).
   const previewDeposit = useCallback((assets, nav) => sharesForAssets(assets, nav), []);
@@ -259,12 +304,13 @@ export function useContracts(walletClient, publicClient, account) {
     getShareBalance,
     getHbarBalance,
     ensureAssociated,
+    ensureShareAllowance,
     deposit,
     redeem,
     previewDeposit,
     localNav,
   }), [
     getPools, getNavPerShare, getShareBalance, getHbarBalance,
-    ensureAssociated, deposit, redeem, previewDeposit, localNav,
+    ensureAssociated, ensureShareAllowance, deposit, redeem, previewDeposit, localNav,
   ]);
 }
