@@ -130,22 +130,35 @@ Use **V1 (Uniswap-v2 style)** — one call creates the pool + seeds liquidity. L
 - ⚠️ The $50 testnet-HBAR fee can be hundreds of HBAR → see §11. SaucerSwap is the part most
   likely to be HBAR-blocked; **redeem-at-NAV is the guaranteed exit**, SaucerSwap is the bonus.
 
-## 6. Frontend (Next.js + Tailwind + shadcn, viem)
+## 6. Frontend (Vite + React 19 + viem, MetaMask)
 
-- **Chain 296** via viem `hederaTestnet` (RPC `https://testnet.hashio.io/api`). ⚠️
-  `nativeCurrency.decimals = 18` (EVM weibar) — keep HBAR/gas math separate from 6-dp USDC.
-- **Dev wallet** from env (`NEXT_PUBLIC_DEV_PRIVATE_KEY`, ECDSA) — NOT Privy. Public client for
-  reads, wallet client for writes.
-- **Writes**: deposit flow = `ensureAssociated(usdc)` → `approve(vault, micro)` →
-  `ensureAssociated(share)` → `deposit(poolId, micro)`. Pin `gas` (~1M) on HTS-touching calls.
-- **Reads**: NAV/pools/balances from contract `view`s; supply/holders/activity from Mirror Node
-  (`/api/v1/tokens/{id}`, `/balances`, `/contracts/{id}/results/logs`, `/accounts/{evm}`).
-- **Hollow-account bootstrap**: fund the dev EVM address with a few HBAR once (creates the
-  account, unlimited auto-assoc by default); first signed tx promotes it. UI guard
-  (`devAccountReady()`) blocks deposit until the account exists + has HBAR.
-- `lib/wafer.ts` (viem clients + typed contract calls + `ensureAssociated`), `lib/mirror.ts`
-  (REST), `lib/abi.ts`, `lib/format.ts`. Screens: Pools+NAV, Deposit, Redeem, Activity. Neutral
-  theme via a single tokens file → drop a DA in without touching logic.
+The investor dApp lives in `web/` — a **Vite 6 + React 19** single-page app using **viem 2**,
+reusing a shared scaffold (wallet hook, contract hook, status/error/format libs, EIP-6963 wallet
+discovery, landing page). No Next.js / Tailwind / shadcn — styling is plain CSS with neutral class
+names so a designer can restyle without touching logic.
+
+- **Chain 296** via a viem `defineChain` (`hederaTestnet`, RPC `https://testnet.hashio.io/api`,
+  explorer `https://hashscan.io/testnet`). ⚠️ `nativeCurrency.decimals = 18` (EVM weibar) — keep
+  HBAR/gas math separate from 6-dp USDC.
+- **Wallet**: **MetaMask** (and any EIP-1193 / EIP-6963 browser wallet) — `useWallet` builds a viem
+  public client (reads) + wallet client (writes), auto-reconnects via silent `eth_accounts`, and
+  switches/adds chain 296. No Privy, no env private key in the frontend.
+- **Gas override**: HTS-touching calls pin `gas` (~1M) and set `maxFeePerGas = liveBaseFee × 5 +
+  tip` (Hashio mis-estimates the same way other testnet relays do) — see `useContracts`.
+- **Writes**: deposit flow = `ensureAssociated(share)` (IHRC719 `associate()` on the token's EVM
+  address) → `approve(vault, micro)` (USDC ERC-20 facade) → `deposit(poolId, micro)`; redeem =
+  `redeem(poolId, shares)` at NAV (the guaranteed exit).
+- **Reads**: NAV/pools/balances from contract `view`s (`navPerShare`, `poolCount`, `pools`,
+  `shareBalanceOf`); activity/holders from Mirror Node (`/api/v1/contracts/{id}/results/logs`,
+  `/tokens/{id}`, `/balances`, `/accounts/{evm}`).
+- **Placeholder until deploy**: `WaferVault.sol` isn't built yet, so the app ships a placeholder
+  ABI (`lib/abi.js`, matching §3) + placeholder addresses + mock pool/activity data and runs in
+  **mock mode** (`MOCK_MODE`) until `VITE_VAULT_ADDRESS` is set. The shell renders + signs-ready.
+- `lib/config.js` (chain + addresses + `MOCK_MODE` + placeholder pools), `lib/abi.js` (vault +
+  ERC-20 + IHRC719), `lib/format.js` (6-dp money + NAV/preview math), `lib/mirror.js` (Mirror Node
+  REST), `lib/errors.js`, `lib/providers.js`. Screens: **Pools** (NAV/TVL/risk), **Deposit/Redeem**
+  (per-pool, with the association/approve flow), **Activity** (event feed), **Dashboard** (the
+  wallet's share balances + value). Run instructions in `web/README.md`.
 
 ## 7. Settlement asset
 
