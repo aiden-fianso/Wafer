@@ -1,0 +1,25 @@
+{
+  "name": "wafer-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Wafer investor dApp — InfraFi liquidity for DePIN on Hedera testnet (Vite + React 19 + viem).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@number-flow/react": "^0.6.0",
+    "globe.gl": "^2.45.3",
+    "motion": "^12.38.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "three": "^0.183.2",
+    "viem": "^2.47.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.4.1",
+    "vite": "^6.3.1"
+  }
+}
