@@ -10,3 +10,8 @@ coverage/
 .deployed.json
 web/.next/
 web/node_modules/
+
+# Hardhat
+artifacts/
+cache/
+typechain-types/
