@@ -45,6 +45,23 @@ Phrase clé : *"Every number you see, I read back from the contract on-chain. Th
 5. Operator portal : proposeDeal + escrow device-NFT. Admin : review + assign class, finance, markDefault (timelock), allowlist KYC, pause/freeze.
 6. Secondary : la **pair SaucerSwap share/WHBAR live** (avec liquidité) — sortie au prix marché en plus du redeem.
 
+### Option C — le "lock des virements" HIP-1215 (`pnpm run smoke:hss`) — le différenciateur
+Le plus fort techniquement : des **transactions Hedera programmées (HIP-1215, 0x16b)**, exécutées par
+le réseau **sans keeper**. Commente en direct :
+
+1. **Avance verrouillée** : `setAdvanceLock(10s)` puis `financeClaim` → l'avance N'est PAS versée tout
+   de suite, elle est **lockée dans le vault** et une *scheduled transaction* est créée
+   (`AdvanceScheduled`, visible sur HashScan). 10s plus tard, le **réseau** exécute `releaseAdvance`
+   et l'opérateur est payé — *« no keeper, no cron : c'est le ledger qui débloque le virement »*.
+2. **Settle auto-schedulé** : `armSelfDrip` programme le règlement des rewards à maturité ; tu
+   **attends**, et le NAV monte tout seul quand la scheduled tx s'exécute — aucune boucle off-chain.
+
+Phrase clé : *« The advance is a locked transfer the network itself releases on a schedule, and the
+reward settlement is a scheduled transaction too — there is no bot, no keeper, no cron anywhere. »*
+Honnêteté à dire : HIP-1215 interdit la récursion de scheduling, donc le settle est **un** virement
+programmé à maturité (le drip par intervalle reste dispo en manuel) — assume-le, c'est une vraie
+contrainte réseau bien gérée.
+
 ---
 
 ## 3. Ce qui est réel vs simulé (à dire, ça inspire confiance)
@@ -67,17 +84,18 @@ Dis-le franchement : *"The only thing we mock is the DePIN reward cashflow itsel
 - HTS natif : part de pool fongible **KYC-gated** (compliance), claim-NFT, le tout piloté par le contrat (clés CONTRACT_ID, aucun signataire off-chain).
 - Settlement en **HBAR natif** (tinybar 8dp), pas de pont fiat.
 - Frais bas + finalité ~3s → on peut driper les rewards et voir le NAV bouger en live.
-- Bonus track cochés : compliance (KYC + freeze + pause), Mirror Node pour le read/audit, secondaire SaucerSwap, automatisation via HIP-1215 (roadmap keeper).
+- Bonus track cochés : **compliance réelle** (KYC + freeze + **pause au niveau token HTS** — la part a 5 clés supply/kyc/freeze/wipe/pause), Mirror Node pour le read/audit, secondaire SaucerSwap, et — nouveau — **Scheduled Transactions HIP-1215 (0x16b) LIVE** : l'avance est un *virement verrouillé* auto-libéré par le réseau, et le settle des rewards est auto-schedulé — **sans keeper**.
 
 ---
 
-## 5. Liens live (à montrer)
+## 5. Liens live (à montrer) — déploiement 2026-06-14
 
-- Vault : https://hashscan.io/testnet/contract/0x9b8752C8a7131529E5DA8Fb6EDcaDA9097FaD244
-- Sourcify (verified) : https://repo.sourcify.dev/contracts/full_match/296/0x9b8752C8a7131529E5DA8Fb6EDcaDA9097FaD244/
-- Part de pool (HTS) : https://hashscan.io/testnet/token/0.0.9228636  ·  Claim-NFT : https://hashscan.io/testnet/token/0.0.9228637
-- Pair SaucerSwap share/WHBAR : https://hashscan.io/testnet/contract/0x22CD5257e92Ca96186cA904780B72C965ba426B1
-- Vault id `0.0.9228634` · operator `0.0.9185964` (`0xf6fAc89C…`)
+- Vault : https://hashscan.io/testnet/contract/0x4B821d6bC76203C3C21131849C40d04C84bb75d5
+- Sourcify (verified) : https://repo.sourcify.dev/contracts/full_match/296/0x4B821d6bC76203C3C21131849C40d04C84bb75d5/
+- Part de pool (HTS, 5 clés : supply/kyc/freeze/wipe/pause) : https://hashscan.io/testnet/token/0.0.9231169  ·  Claim-NFT : https://hashscan.io/testnet/token/0.0.9231170
+- Pair SaucerSwap share/WHBAR : https://hashscan.io/testnet/contract/0x4B6dEAcA611177F74433A57A3bF6f9b1b95BC182
+- Vault id `0.0.9231166` · operator `0.0.9185964` (`0xf6fAc89C…`)
+- **Adresses canoniques : `deployments/testnet.json`** (le front se synchronise automatiquement dessus).
 - One-pager : `docs/ONE-PAGER.md` (EN) / `docs/ONE-PAGER.fr.md` (FR) · Spec : `SPEC.md`
 
 ---

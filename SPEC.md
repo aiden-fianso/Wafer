@@ -311,9 +311,11 @@ serial)`, `ClaimDefaulted(claimId, loss)`, `Deposit`, `Redeem`, `RedemptionQueue
 ## 8. HTS token configuration
 
 - **Pool-share** — `createFungibleTokenWithCustomFees` with **empty fee arrays (no custom fee, D11)**:
-  8dp, INFINITE supply, treasury = vault, keys (supply, **kyc**, **freeze**, wipe, fee_schedule,
-  pause) = `KeyValueType.CONTRACT_ID`. No fractional fee — a fee breaks redeem + AMM transfers on
-  Hedera (see D11). KYC flow: investor **associates** (IHRC719) → admin `adminGrantKyc` → transfers
+  8dp, INFINITE supply, treasury = vault, **5 keys** (supply, **kyc**, **freeze**, **wipe**, **pause**)
+  = `KeyValueType.CONTRACT_ID` (NO fee_schedule key — no fee, D11). `pausePool`/`unpausePool` call HTS
+  `pauseToken`/`unpauseToken` (real token-level halt of ALL transfers incl. secondary), and `freeze`
+  is per-account — so KYC + freeze + pause are three real compliance levers. No fractional fee — a fee
+  breaks redeem + AMM transfers on Hedera (see D11). KYC flow: investor **associates** (IHRC719) → admin `adminGrantKyc` → transfers
   allowed (both parties must be KYC'd; vault self-grants at create). The same `adminGrantKyc` grants
   the SaucerSwap **pair** KYC when enabling the secondary market.
 - **Claim NFT** — `createNonFungibleToken`: supply + wipe keys = vault, treasury = vault. Minted to
@@ -344,7 +346,21 @@ drip(uint256 scheduleId)            // permissionless keeper trigger; releases a
                                     // vault.settleRewards{value: amt}(poolId, claimId); reverts NOTHING_DUE early
 pending(uint256 scheduleId) view returns (uint64 releasableNow, uint64 remaining)
 simulateDefault(uint256 scheduleId) onlyOwner   // stop mid-term to demo markDefault
+armSelfDrip(uint256 scheduleId) payable onlyOwner  // HIP-1215: schedule a keeper-free maturity settle
+scheduledDrip(uint256 scheduleId)                  // HSS-fired settlement (releases all due intervals)
 ```
+
+**HIP-1215 scheduled transactions (IMPLEMENTED, live on testnet, system contract `0x16b`):** two
+keeper-free flows beyond the prod-roadmap framing above:
+- **Locked advance** — `WaferVault.setAdvanceLock(seconds)`; when set, `financeClaim` keeps the advance
+  in the vault and schedules `releaseAdvance(claimId)` via HSS to auto-pay the operator at unlock
+  (`AdvanceScheduled`/`AdvanceReleased`). `releaseAdvance` is permissionless but gated by unlock-time +
+  once-only — the network releases the "locked virement" with no keeper.
+- **Self-scheduled settle** — `MockRewardSource.armSelfDrip` schedules one `scheduledDrip` at maturity
+  that settles the reward in a single network-executed tx (no JS loop). NOTE: HIP-1215 returns
+  `NO_SCHEDULING_ALLOWED_AFTER_SCHEDULED_RECURSION` for nested/multiple self-schedules per tx, so a
+  per-interval recurring chain is not possible on-chain — it is one scheduled maturity settle; the
+  manual `drip()` remains the per-interval path. Proven by `pnpm run smoke:hss`.
 `MockRewardSource` is added to the claim's `claimSettler` set. Demo keeper = a script loop (prod =
 HIP-1215). Demo script: createPool → adminGrantKyc → deposit 100 → proposeDeal → approveDeal(class)
 → financeClaim(advance 90, expected 100) → `fund(100)` → loop `drip()` asserting NAV 1.0→1.1
