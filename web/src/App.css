@@ -7,20 +7,21 @@
 
 :root {
   /* ---- Palette (ART-DIRECTION v2 §1) ---- */
-  --bg:          #0E1E2E; /* deep night blue (base, darkest) */
-  --bg-2:        #12283A; /* panels / sidebar */
-  --surface:     #163048; /* cards */
-  --surface-hi:  #1E3C56; /* card hover / elevation */
-  --line:        #2C4C68; /* borders (blue) */
-  --amber:       #F0A23C; /* primary accent (sodium orange) */
-  --amber-hi:    #FFC24D; /* highlight / glow (toward pale yellow) */
-  --amber-soft:  rgba(240, 162, 60, 0.14); /* fills, halos */
-  --amber-glow:  rgba(240, 162, 60, 0.30);
-  --text:        #F4EEE3; /* warm white (warmth against the blue) */
-  --text-2:      #9DB0BD; /* secondary (slate blue-grey) */
-  --text-3:      #5E7282; /* tertiary / labels */
-  --up:          #6FC9A6; /* NAV up (desat teal-green) */
-  --down:        #E08A6B; /* NAV down / default (terracotta) */
+  /* Black & white theme — matches the landing title; the old blue is gone. */
+  --bg:          #060606; /* black (base) */
+  --bg-2:        #0E0E0E; /* panels / sidebar */
+  --surface:     #151515; /* cards */
+  --surface-hi:  #1F1F1F; /* card hover / elevation */
+  --line:        #2A2A2A; /* borders (grey) */
+  --amber:       #FFFFFF; /* primary accent — now WHITE */
+  --amber-hi:    #E8E8E8; /* accent hover */
+  --amber-soft:  rgba(255, 255, 255, 0.10); /* fills, halos */
+  --amber-glow:  rgba(255, 255, 255, 0.16);
+  --text:        #FFFFFF; /* white */
+  --text-2:      #9B9B9B; /* secondary grey */
+  --text-3:      #5F5F5F; /* tertiary / labels */
+  --up:          #7FD49B; /* NAV up — muted green (kept for P&L legibility) */
+  --down:        #E08A6B; /* NAV down / default — muted red (kept for P&L) */
 
   /* Back-compat aliases for existing inline styles / older class names. */
   --accent: var(--amber);
@@ -107,7 +108,7 @@ a { color: inherit; }
   min-height: 100vh;
   display: flex;
   background:
-    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(240,162,60,0.05), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 0%, rgba(255,255,255,0.05), transparent 60%),
     var(--bg);
 }
 
@@ -212,7 +213,7 @@ a { color: inherit; }
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, #F6F0E6, #E7DAC6);
+  background: linear-gradient(135deg, #f4f4f4, #d6d6d6);
   box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 4px 14px rgba(0,0,0,0.35), 0 0 16px var(--amber-glow);
 }
 .sb-logo-svg { display: block; }
@@ -463,8 +464,8 @@ a { color: inherit; }
   background-position: center;
   /* CSS-only fallback when no hero image is present: radial amber on near-black. */
   background-image:
-    radial-gradient(ellipse 70% 60% at 70% 35%, rgba(240,162,60,0.22), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 30% 90%, rgba(240,162,60,0.06), transparent 55%),
+    radial-gradient(ellipse 70% 60% at 70% 35%, rgba(255,255,255,0.22), transparent 60%),
+    radial-gradient(ellipse 90% 70% at 30% 90%, rgba(255,255,255,0.06), transparent 55%),
     linear-gradient(180deg, #12283A, #0A1622);
   transform: scale(1.06);
   opacity: 0;
@@ -556,7 +557,7 @@ a { color: inherit; }
   padding: 1.75rem 1.5rem;
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
-.hiw-card:hover { background: var(--surface-hi); border-color: rgba(240,162,60,0.3); transform: translateY(-3px); }
+.hiw-card:hover { background: var(--surface-hi); border-color: rgba(255,255,255,0.3); transform: translateY(-3px); }
 .hiw-num { display: block; font-size: 0.85rem; color: var(--amber); margin-bottom: 1.25rem; }
 .hiw-step-title { font-size: 1.1rem; margin-bottom: 0.6rem; }
 .hiw-step-desc { font-size: 0.92rem; line-height: 1.6; color: var(--text-2); }
@@ -567,7 +568,7 @@ a { color: inherit; }
    ============================================================================= */
 .btn-amber, .vault-action-btn, .gradient-btn {
   background: var(--amber);
-  color: #0E1E2E;
+  color: #0a0a0a;
   border: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -614,7 +615,7 @@ a { color: inherit; }
 
 .btn-primary {
   background: var(--amber);
-  color: #0E1E2E;
+  color: #0a0a0a;
   border: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -633,7 +634,7 @@ a { color: inherit; }
 /* Legacy connect button (kept for any stray usage). */
 .btn-connect {
   background: var(--amber);
-  color: #0E1E2E;
+  color: #0a0a0a;
   border: none;
   border-radius: var(--radius-pill);
   font-weight: 600;
@@ -653,7 +654,7 @@ a { color: inherit; }
   margin-bottom: 1.25rem;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
-.card:hover { border-color: rgba(240,162,60,0.18); }
+.card:hover { border-color: rgba(255,255,255,0.18); }
 .card h2 { font-size: 1.35rem; margin-bottom: 1.1rem; }
 .card h3 {
   font-size: 11px;
@@ -802,7 +803,7 @@ a.mt-oracle-label:hover { color: var(--amber); }
 
 .vault-action-btn { width: 100%; margin-top: 0.5rem; }
 .vault-error-msg { display: flex; align-items: center; gap: 0.5rem; background: rgba(224,138,107,0.08); border: 1px solid rgba(224,138,107,0.3); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; color: var(--down); font-size: 0.8rem; margin: 0.75rem 0; }
-.wafer-queue-notice { background: var(--amber-soft); border: 1px solid rgba(240,162,60,0.3); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; color: var(--amber-hi); font-size: 0.8rem; line-height: 1.5; margin: 0.75rem 0; }
+.wafer-queue-notice { background: var(--amber-soft); border: 1px solid rgba(255,255,255,0.3); border-radius: var(--radius-sm); padding: 0.6rem 0.75rem; color: var(--amber-hi); font-size: 0.8rem; line-height: 1.5; margin: 0.75rem 0; }
 
 /* =============================================================================
    FORMS / ADMIN / OPERATOR
@@ -863,7 +864,7 @@ select option { background: var(--bg-2); color: var(--text); }
   font-size: 0.85rem;
   flex-wrap: wrap;
 }
-.net-warning button { background: var(--amber); color: #0E1E2E; border: none; border-radius: 8px; padding: 0.4rem 0.8rem; font-weight: 600; cursor: pointer; }
+.net-warning button { background: var(--amber); color: #0a0a0a; border: none; border-radius: 8px; padding: 0.4rem 0.8rem; font-weight: 600; cursor: pointer; }
 
 .app-loading { min-height: 100vh; background: var(--bg); }
 

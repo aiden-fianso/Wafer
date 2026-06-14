@@ -29,11 +29,11 @@ export default function Sidebar({ activeTab, onTabChange, role, onRoleChange, ro
         <span className="sb-logo">
           <svg className="sb-logo-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <defs><clipPath id="wfr-clip"><circle cx="12" cy="12" r="9" /></clipPath></defs>
-            <g clipPath="url(#wfr-clip)" stroke="#0E1E2E" strokeWidth="0.9" opacity="0.5">
+            <g clipPath="url(#wfr-clip)" stroke="#0a0a0a" strokeWidth="0.9" opacity="0.5">
               <path d="M8 1 V23 M12 1 V23 M16 1 V23 M1 8 H23 M1 12 H23 M1 16 H23" />
             </g>
-            <circle cx="12" cy="12" r="9" stroke="#0E1E2E" strokeWidth="1.7" />
-            <circle cx="12" cy="3.5" r="0.95" fill="#0E1E2E" />
+            <circle cx="12" cy="12" r="9" stroke="#0a0a0a" strokeWidth="1.7" />
+            <circle cx="12" cy="3.5" r="0.95" fill="#0a0a0a" />
           </svg>
         </span>
         <span className="sb-wordmark">Wafer</span>

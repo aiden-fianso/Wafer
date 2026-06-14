@@ -30,8 +30,9 @@ export default function Hero({ onEnter, connecting }) {
 
       <div className="wf-hero-copy">
         <h1 className="wf-hero-line">
-          Every DePIN runs on silicon. Wafer slices the machines&apos; future on-chain rewards into{" "}
-          <span className="wf-highlight">liquid, NAV-appreciating yield.</span>
+          Every DePIN runs on silicon. Turn the machines&apos; future on-chain rewards into liquid,
+          NAV-appreciating yield with{" "}
+          <span className="wf-highlight">Wafer.</span>
         </h1>
         <button className="wf-launch" onClick={onEnter} disabled={connecting}>
           {connecting ? "Connecting…" : "Launch app"}
